@@ -1,0 +1,6 @@
+{
+  "name": "Manukx Art Gallery",
+  "description": "Modern public art and drawing community combining an art social network, digital gallery, creator profiles, time-lapse video sharing, and marketplace.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

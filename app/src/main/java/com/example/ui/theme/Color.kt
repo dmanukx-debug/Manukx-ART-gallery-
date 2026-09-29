@@ -2,37 +2,49 @@ package com.example.ui.theme
 
 import androidx.compose.ui.graphics.Color
 
-// Manukx Art Gallery Design Tokens
-val GalleryPrimary = Color(0xFFD97736) // Terracotta Ochre
-val GalleryPrimaryDark = Color(0xFFE58746)
-val GalleryPrimaryContainer = Color(0xFF381D0E)
-val GalleryOnPrimaryContainer = Color(0xFFFFDBCF)
+// Primary Indigo & Slate Modern Palette
+val StudyPrimary = Color(0xFF6366F1) // Electric Indigo
+val StudyPrimaryLight = Color(0xFF4F46E5)
+val StudyPrimaryContainerDark = Color(0xFF1E1B4B)
+val StudyPrimaryContainerLight = Color(0xFFEEF2FF)
 
-val GallerySecondary = Color(0xFF3B82F6) // Cerulean
-val GallerySecondaryDark = Color(0xFF60A5FA)
-val GallerySecondaryContainer = Color(0xFF1E3A8A)
+val StudySecondary = Color(0xFF06B6D4) // Bright Cyan
+val StudySecondaryDark = Color(0xFF0891B2)
+val StudySecondaryContainer = Color(0xFF0E7490)
 
-val GalleryTertiary = Color(0xFF64748B) // Slate
-val GalleryTertiaryDark = Color(0xFF94A3B8)
+val StudyAccentAmber = Color(0xFFF59E0B) // Amber Gold / Streak Flame
+val StudyAccentEmerald = Color(0xFF10B981) // Completed / Success
+val StudyAccentRose = Color(0xFFF43F5E) // Weak / Urgent
+val StudyAccentPurple = Color(0xFF8B5CF6) // Language / Mind map
 
-// Dark Palette (Default Gallery Noir)
-val GalleryDarkNeutral = Color(0xFF0C0D10)
-val GalleryDarkSurface = Color(0xFF14161C)
-val GalleryDarkSurfaceVariant = Color(0xFF1E2028)
-val GalleryDarkCard = Color(0xFF232532)
-val GalleryDarkOutline = Color(0xFF2E3240)
-val GalleryDarkTextPrimary = Color(0xFFF3F4F6)
-val GalleryDarkTextSecondary = Color(0xFF9CA3AF)
+// Dark Theme Surfaces
+val StudyDarkBg = Color(0xFF0B0F19)
+val StudyDarkSurface = Color(0xFF111827)
+val StudyDarkCard = Color(0xFF1E293B)
+val StudyDarkCardElevated = Color(0xFF27354A)
+val StudyDarkOutline = Color(0xFF334155)
+val StudyDarkTextPrimary = Color(0xFFF8FAFC)
+val StudyDarkTextSecondary = Color(0xFF94A3B8)
+val StudyDarkTextMuted = Color(0xFF64748B)
 
-// Light Palette (Warm Alabaster Gallery)
-val GalleryLightNeutral = Color(0xFFF9F9F8)
-val GalleryLightSurface = Color(0xFFFFFFFF)
-val GalleryLightSurfaceVariant = Color(0xFFF1F3F5)
-val GalleryLightCard = Color(0xFFFFFFFF)
-val GalleryLightOutline = Color(0xFFE2E4E9)
-val GalleryLightTextPrimary = Color(0xFF111827)
-val GalleryLightTextSecondary = Color(0xFF6B7280)
+// Light Theme Surfaces
+val StudyLightBg = Color(0xFFF8FAFC)
+val StudyLightSurface = Color(0xFFFFFFFF)
+val StudyLightCard = Color(0xFFFFFFFF)
+val StudyLightCardElevated = Color(0xFFF1F5F9)
+val StudyLightOutline = Color(0xFFE2E8F0)
+val StudyLightTextPrimary = Color(0xFF0F172A)
+val StudyLightTextSecondary = Color(0xFF475569)
+val StudyLightTextMuted = Color(0xFF94A3B8)
 
-val AccentGold = Color(0xFFF59E0B)
-val AccentSuccess = Color(0xFF10B981)
-val AccentDanger = Color(0xFFEF4444)
+// Subject Dedicated Colors
+val ColorMath = Color(0xFF6366F1)
+val ColorScience = Color(0xFF10B981)
+val ColorSinhala = Color(0xFF8B5CF6)
+val ColorEnglish = Color(0xFF0EA5E9)
+val ColorHistory = Color(0xFFD97706)
+val ColorGeography = Color(0xFF14B8A6)
+val ColorBuddhism = Color(0xFFF97316)
+val ColorCivic = Color(0xFFF43F5E)
+val ColorHealth = Color(0xFF84CC16)
+val ColorArt = Color(0xFFEC4899)

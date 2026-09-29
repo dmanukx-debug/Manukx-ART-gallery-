@@ -3,6 +3,6 @@
     <item
         android:width="66dp"
         android:height="66dp"
-        android:drawable="@drawable/ic_manukx_logo"
+        android:drawable="@drawable/study30_launcher_icon_1790691025362"
         android:gravity="center" />
 </layer-list>

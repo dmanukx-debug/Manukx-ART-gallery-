@@ -1,6 +1,7 @@
 package com.example.ui.screens
 
 import androidx.compose.animation.*
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -12,7 +13,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
-import androidx.compose.material.icons.outlined.Campaign
+import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -20,187 +21,415 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.data.model.ArtPostEntity
+import com.example.R
+import com.example.data.model.DayPlanEntity
+import com.example.data.model.TaskEntity
 import com.example.ui.components.*
-import com.example.ui.theme.AccentGold
-import com.example.ui.theme.GalleryPrimary
-import com.example.ui.viewmodel.GalleryTab
-import com.example.ui.viewmodel.GalleryViewModel
+import com.example.ui.theme.*
+import com.example.ui.viewmodel.StudyTab
+import com.example.ui.viewmodel.StudyViewModel
 
 @Composable
 fun HomeScreen(
-    viewModel: GalleryViewModel,
-    modifier: Modifier = Modifier
+    viewModel: StudyViewModel,
+    onNavigateToPlanner: (Int) -> Unit,
+    onNavigateToSubjects: () -> Unit,
+    onNavigateToRevision: () -> Unit
 ) {
-    val allPosts by viewModel.allPosts.collectAsState()
-    val likedIds by viewModel.likedPostIds.collectAsState()
-    val savedIds by viewModel.savedPostIds.collectAsState()
-    val announcements by viewModel.activeAnnouncements.collectAsState()
-    val currentUser by viewModel.currentUser.collectAsState()
+    val dayPlans by viewModel.dayPlans.collectAsState()
+    val selectedDayNumber by viewModel.selectedDay.collectAsState()
+    val allTasks by viewModel.tasks.collectAsState()
+    val subjects by viewModel.subjects.collectAsState()
+    val testBooks by viewModel.testBooks.collectAsState()
+    val userSettings by viewModel.userSettings.collectAsState()
+    val daysRemaining by viewModel.daysRemaining.collectAsState()
+    val overallProgress by viewModel.overallProgressPercent.collectAsState()
+    val totalCompletedMins by viewModel.totalCompletedMinutes.collectAsState()
 
-    var activeSubFilter by remember { mutableStateOf("For You") } // "For You", "Originals", "Time-lapses"
+    val currentDayPlan = remember(dayPlans, selectedDayNumber) {
+        dayPlans.find { it.dayNumber == selectedDayNumber } ?: dayPlans.firstOrNull() ?: DayPlanEntity(
+            dayNumber = selectedDayNumber,
+            phase = if (selectedDayNumber <= 10) 1 else if (selectedDayNumber <= 20) 2 else if (selectedDayNumber <= 26) 3 else 4,
+            phaseTitle = if (selectedDayNumber <= 10) "PHASE 1: Foundation & Understanding" else "PHASE 2: Practice & Test Books",
+            weekNumber = ((selectedDayNumber - 1) / 7 + 1).coerceIn(1, 4),
+            subject1Id = "math",
+            subject2Id = "english",
+            goal = "Master algebra foundation & English grammar",
+            plannedMinutes = 120,
+            completedMinutes = 0
+        )
+    }
 
-    val filteredPosts = remember(allPosts, activeSubFilter) {
-        when (activeSubFilter) {
-            "Originals" -> allPosts.filter { it.isForSale && !it.isSold }
-            "Time-lapses" -> allPosts.filter { it.isReel }
-            else -> allPosts
-        }
+    val todayTasks = remember(allTasks, selectedDayNumber) {
+        allTasks.filter { it.dayNumber == selectedDayNumber }
+    }
+
+    val todayCompletedTasksCount = remember(todayTasks) {
+        todayTasks.count { it.isCompleted }
+    }
+
+    val todayProgressPercent = remember(todayTasks, todayCompletedTasksCount) {
+        if (todayTasks.isEmpty()) 0 else ((todayCompletedTasksCount.toFloat() / todayTasks.size) * 100).toInt()
+    }
+
+    val remainingBooksCount = remember(testBooks) {
+        testBooks.count { it.completedQuestions < it.totalQuestions }
     }
 
     LazyColumn(
-        modifier = modifier.fillMaxSize(),
-        contentPadding = PaddingValues(bottom = 16.dp)
+        modifier = Modifier
+            .fillMaxSize()
+            .testTag("home_screen_list"),
+        contentPadding = PaddingValues(16.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        // Studio Reels & Workshops Stories Row
+        // 1. Big Countdown Banner
         item {
-            Column(
+            Card(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(top = 10.dp, bottom = 6.dp)
+                    .testTag("countdown_banner_card"),
+                shape = RoundedCornerShape(20.dp),
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.primaryContainer
+                )
             ) {
-                Row(
+                Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 4.dp),
+                        .background(
+                            Brush.horizontalGradient(
+                                listOf(
+                                    MaterialTheme.colorScheme.primaryContainer,
+                                    MaterialTheme.colorScheme.surfaceVariant
+                                )
+                            )
+                        )
+                        .padding(18.dp)
+                ) {
+                    Column(
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(6.dp)
+                            ) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(10.dp)
+                                        .clip(CircleShape)
+                                        .background(StudyAccentRose)
+                                )
+                                Text(
+                                    text = "$daysRemaining DAYS TO GO",
+                                    style = MaterialTheme.typography.titleLarge.copy(
+                                        fontWeight = FontWeight.ExtraBold,
+                                        letterSpacing = 1.sp
+                                    ),
+                                    color = MaterialTheme.colorScheme.onPrimaryContainer
+                                )
+                            }
+                            Box(
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(8.dp))
+                                    .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.2f))
+                                    .padding(horizontal = 8.dp, vertical = 4.dp)
+                            ) {
+                                Text(
+                                    text = "30-Day Plan",
+                                    style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
+                                    color = MaterialTheme.colorScheme.primary
+                                )
+                            }
+                        }
+
+                        Text(
+                            text = "\"Small progress every day becomes a big result.\"",
+                            style = MaterialTheme.typography.bodyMedium.copy(fontStyle = androidx.compose.ui.text.font.FontStyle.Italic),
+                            color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.85f)
+                        )
+
+                        Spacer(modifier = Modifier.height(4.dp))
+
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Text(
+                                text = "Total Study Target: 60 Hours",
+                                style = MaterialTheme.typography.labelMedium,
+                                color = MaterialTheme.colorScheme.onPrimaryContainer
+                            )
+                            Text(
+                                text = "${totalCompletedMins / 60}h ${totalCompletedMins % 60}m completed",
+                                style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.SemiBold),
+                                color = MaterialTheme.colorScheme.primary
+                            )
+                        }
+
+                        AnimatedProgressBar(
+                            progress = overallProgress / 100f,
+                            color = MaterialTheme.colorScheme.primary,
+                            height = 8.dp
+                        )
+                    }
+                }
+            }
+        }
+
+        // 2. Quick 30-Day Selector Strip
+        item {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
-                        text = "Studio Reels & Workshops",
-                        style = MaterialTheme.typography.titleSmall,
-                        fontFamily = FontFamily.Serif,
-                        fontWeight = FontWeight.Bold,
+                        text = "30-Day Timeline",
+                        style = MaterialTheme.typography.titleMedium,
                         color = MaterialTheme.colorScheme.onSurface
                     )
-
                     Text(
-                        text = "Upload Reel",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = GalleryPrimary,
-                        fontWeight = FontWeight.SemiBold,
-                        modifier = Modifier.clickable { viewModel.selectTab(GalleryTab.CREATE) }
+                        text = "View Planner >",
+                        style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.SemiBold),
+                        color = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.clickable { onNavigateToPlanner(selectedDayNumber) }
                     )
                 }
 
                 LazyRow(
-                    contentPadding = PaddingValues(horizontal = 14.dp, vertical = 6.dp),
-                    horizontalArrangement = Arrangement.spacedBy(14.dp)
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    modifier = Modifier.fillMaxWidth()
                 ) {
-                    // Current User's Add Story
-                    item {
-                        Column(
-                            horizontalAlignment = Alignment.CenterHorizontally,
-                            modifier = Modifier.clickable { viewModel.selectTab(GalleryTab.CREATE) }
-                        ) {
-                            Box(
-                                modifier = Modifier
-                                    .size(64.dp)
-                                    .clip(CircleShape)
-                                    .background(MaterialTheme.colorScheme.surfaceVariant)
-                                    .border(1.5.dp, MaterialTheme.colorScheme.outline, CircleShape),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.Add,
-                                    contentDescription = "Share Study",
-                                    tint = GalleryPrimary,
-                                    modifier = Modifier.size(26.dp)
-                                )
-                            }
-                            Spacer(modifier = Modifier.height(4.dp))
-                            Text(
-                                text = "Share Study",
-                                style = MaterialTheme.typography.labelSmall,
-                                fontSize = 10.sp,
-                                maxLines = 1
-                            )
+                    items(30) { index ->
+                        val dayNum = index + 1
+                        val isSelected = dayNum == selectedDayNumber
+                        val planForDay = dayPlans.find { it.dayNumber == dayNum }
+                        val isCompleted = planForDay?.isCompleted == true || (planForDay?.completedMinutes ?: 0) >= 120
+
+                        val containerColor = when {
+                            isSelected -> MaterialTheme.colorScheme.primary
+                            isCompleted -> StudyAccentEmerald.copy(alpha = 0.15f)
+                            else -> MaterialTheme.colorScheme.surfaceVariant
                         }
-                    }
 
-                    // Master Artist Studio Stories
-                    item {
-                        StoryAvatarItem(
-                            title = "Elena Rostova",
-                            subtitle = "LIVE Charcoal",
-                            imageUri = "res:avatar_elena",
-                            hasStory = true,
-                            onClick = {
-                                if (allPosts.isNotEmpty()) {
-                                    viewModel.inspectPost(allPosts.firstOrNull())
+                        val contentColor = when {
+                            isSelected -> Color.White
+                            isCompleted -> StudyAccentEmerald
+                            else -> MaterialTheme.colorScheme.onSurfaceVariant
+                        }
+
+                        Box(
+                            modifier = Modifier
+                                .width(56.dp)
+                                .clip(RoundedCornerShape(12.dp))
+                                .background(containerColor)
+                                .border(
+                                    width = if (isSelected) 2.dp else 1.dp,
+                                    color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline.copy(alpha = 0.2f),
+                                    shape = RoundedCornerShape(12.dp)
+                                )
+                                .clickable { viewModel.selectDay(dayNum) }
+                                .padding(vertical = 10.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Column(
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                verticalArrangement = Arrangement.spacedBy(2.dp)
+                            ) {
+                                Text(
+                                    text = "DAY",
+                                    style = MaterialTheme.typography.labelSmall.copy(fontSize = 9.sp),
+                                    color = contentColor.copy(alpha = 0.8f)
+                                )
+                                Text(
+                                    text = String.format("%02d", dayNum),
+                                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                                    color = contentColor
+                                )
+                                if (isCompleted) {
+                                    Icon(
+                                        imageVector = Icons.Filled.CheckCircle,
+                                        contentDescription = "Completed",
+                                        tint = StudyAccentEmerald,
+                                        modifier = Modifier.size(12.dp)
+                                    )
                                 }
                             }
-                        )
-                    }
-
-                    item {
-                        StoryAvatarItem(
-                            title = "Marcus Aurel",
-                            subtitle = "Pencil Tonal",
-                            imageUri = "res:art_charcoal_hands",
-                            hasStory = true,
-                            onClick = {
-                                if (allPosts.isNotEmpty()) {
-                                    viewModel.inspectPost(allPosts.firstOrNull())
-                                }
-                            }
-                        )
-                    }
-
-                    item {
-                        StoryAvatarItem(
-                            title = "Botanical Studio",
-                            subtitle = "Glazing W.I.P",
-                            imageUri = "res:art_watercolor_mist",
-                            hasStory = false,
-                            onClick = {}
-                        )
+                        }
                     }
                 }
             }
         }
 
-        // Active Official Announcement Banner
-        if (announcements.isNotEmpty()) {
-            val announcement = announcements.first()
-            item {
-                Surface(
+        // 3. Today's Study Mission Card
+        item {
+            currentDayPlan?.let { plan ->
+                val sub1 = subjects.find { it.id == plan.subject1Id }
+                val sub2 = subjects.find { it.id == plan.subject2Id }
+
+                Card(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 14.dp, vertical = 6.dp),
-                    shape = RoundedCornerShape(12.dp),
-                    color = MaterialTheme.colorScheme.surfaceVariant,
-                    border = androidx.compose.foundation.BorderStroke(1.dp, GalleryPrimary.copy(alpha = 0.3f))
+                        .testTag("today_mission_card"),
+                    shape = RoundedCornerShape(20.dp),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.surfaceVariant
+                    )
                 ) {
-                    Row(
-                        modifier = Modifier.padding(12.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(10.dp)
+                    Column(
+                        modifier = Modifier.padding(18.dp),
+                        verticalArrangement = Arrangement.spacedBy(14.dp)
                     ) {
-                        Icon(
-                            imageVector = Icons.Outlined.Campaign,
-                            contentDescription = null,
-                            tint = GalleryPrimary,
-                            modifier = Modifier.size(24.dp)
-                        )
-                        Column(modifier = Modifier.weight(1f)) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                Box(
+                                    modifier = Modifier
+                                        .clip(RoundedCornerShape(8.dp))
+                                        .background(MaterialTheme.colorScheme.primary)
+                                        .padding(horizontal = 8.dp, vertical = 4.dp)
+                                ) {
+                                    Text(
+                                        text = "DAY ${String.format("%02d", plan.dayNumber)}",
+                                        style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
+                                        color = Color.White
+                                    )
+                                }
+                                PhaseBadge(phase = plan.phase)
+                            }
+
+                            // Circular Progress for the day
+                            CircularProgressRing(
+                                progress = todayProgressPercent / 100f,
+                                modifier = Modifier.size(44.dp),
+                                strokeWidth = 5.dp,
+                                progressColor = MaterialTheme.colorScheme.primary
+                            ) {
+                                Text(
+                                    text = "$todayProgressPercent%",
+                                    style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
+                                    color = MaterialTheme.colorScheme.onSurface
+                                )
+                            }
+                        }
+
+                        // Today's Study Goal
+                        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                             Text(
-                                text = announcement.title,
-                                style = MaterialTheme.typography.titleSmall,
-                                fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.onSurface
+                                text = "Today's Study Mission",
+                                style = MaterialTheme.typography.labelMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                             Text(
-                                text = announcement.message,
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                maxLines = 2,
-                                overflow = TextOverflow.Ellipsis
+                                text = plan.goal,
+                                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold),
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
+                        }
+
+                        // Two subjects paired for today
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(10.dp)
+                        ) {
+                            sub1?.let { s1 ->
+                                val color = getSubjectColor(s1.id)
+                                Box(
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .clip(RoundedCornerShape(12.dp))
+                                        .background(color.copy(alpha = 0.12f))
+                                        .border(1.dp, color.copy(alpha = 0.35f), RoundedCornerShape(12.dp))
+                                        .padding(12.dp)
+                                ) {
+                                    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                                        Text(
+                                            text = "Subject 1 (${s1.category})",
+                                            style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp),
+                                            color = color
+                                        )
+                                        Text(
+                                            text = s1.name,
+                                            style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
+                                            color = MaterialTheme.colorScheme.onSurface,
+                                            maxLines = 1,
+                                            overflow = TextOverflow.Ellipsis
+                                        )
+                                    }
+                                }
+                            }
+
+                            sub2?.let { s2 ->
+                                val color = getSubjectColor(s2.id)
+                                Box(
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .clip(RoundedCornerShape(12.dp))
+                                        .background(color.copy(alpha = 0.12f))
+                                        .border(1.dp, color.copy(alpha = 0.35f), RoundedCornerShape(12.dp))
+                                        .padding(12.dp)
+                                ) {
+                                    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                                        Text(
+                                            text = "Subject 2 (${s2.category})",
+                                            style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp),
+                                            color = color
+                                        )
+                                        Text(
+                                            text = s2.name,
+                                            style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
+                                            color = MaterialTheme.colorScheme.onSurface,
+                                            maxLines = 1,
+                                            overflow = TextOverflow.Ellipsis
+                                        )
+                                    }
+                                }
+                            }
+                        }
+
+                        // 2-Hour Study Structure Action Button
+                        Button(
+                            onClick = { viewModel.openTimerDialog(plan.subject1Id) },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(48.dp)
+                                .testTag("start_2h_study_session_button"),
+                            shape = RoundedCornerShape(14.dp),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = MaterialTheme.colorScheme.primary
+                            )
+                        ) {
+                            Icon(
+                                imageVector = Icons.Filled.PlayArrow,
+                                contentDescription = null,
+                                modifier = Modifier.size(20.dp)
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(
+                                text = "Start 2-Hour Study Session (Timer)",
+                                style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold)
                             )
                         }
                     }
@@ -208,101 +437,260 @@ fun HomeScreen(
             }
         }
 
-        // Sub-filter tabs (Following, For You, Originals, Time-lapses)
+        // 4. Today's Checklist Section
         item {
             Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 14.dp, vertical = 6.dp),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                listOf("For You", "Originals", "Time-lapses").forEach { filter ->
-                    FilterChip(
-                        selected = activeSubFilter == filter,
-                        onClick = { activeSubFilter = filter },
-                        label = { Text(filter, style = MaterialTheme.typography.labelSmall) },
-                        colors = FilterChipDefaults.filterChipColors(
-                            selectedContainerColor = GalleryPrimary,
-                            selectedLabelColor = Color.White
-                        )
+                Text(
+                    text = "Today's Checklist ($todayCompletedTasksCount/${todayTasks.size})",
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                TextButton(
+                    onClick = { onNavigateToPlanner(selectedDayNumber) },
+                    contentPadding = PaddingValues(0.dp)
+                ) {
+                    Text(
+                        text = "Edit in Planner",
+                        style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.SemiBold)
                     )
                 }
             }
         }
 
-        // Posts List or Empty State
-        if (filteredPosts.isEmpty()) {
+        if (todayTasks.isEmpty()) {
             item {
-                EmptyGalleryState(
-                    icon = Icons.Default.Palette,
-                    title = "Atelier Canvas is Open",
-                    message = "No real art posts submitted yet under this filter. Tap Publish to upload a sketch, time-lapse reel, or original painting!",
-                    actionLabel = "Publish Real Artwork",
-                    onAction = { viewModel.selectTab(GalleryTab.CREATE) }
-                )
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(14.dp),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+                ) {
+                    Box(modifier = Modifier.padding(20.dp), contentAlignment = Alignment.Center) {
+                        Text(
+                            text = "No tasks set for Day $selectedDayNumber. Tap to add study tasks in Planner.",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
             }
         } else {
-            items(filteredPosts, key = { it.id }) { post ->
-                ArtPostCard(
-                    post = post,
-                    isLiked = likedIds.contains(post.id),
-                    isSaved = savedIds.contains(post.id),
-                    onLikeToggle = { viewModel.toggleLike(post.id) },
-                    onSaveToggle = { viewModel.toggleSave(post.id) },
-                    onCommentClick = { viewModel.openComments(post.id) },
-                    onInspectClick = { viewModel.inspectPost(post) },
-                    onInquireClick = { viewModel.openPurchase("ARTWORK", post) },
-                    onAuthorClick = { viewModel.selectTab(GalleryTab.PROFILE) }
+            items(todayTasks, key = { it.id }) { task ->
+                val subColor = getSubjectColor(task.subjectId)
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .testTag("task_item_${task.id}"),
+                    shape = RoundedCornerShape(14.dp),
+                    colors = CardDefaults.cardColors(
+                        containerColor = if (task.isCompleted)
+                            MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f)
+                        else
+                            MaterialTheme.colorScheme.surfaceVariant
+                    )
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { viewModel.toggleTask(task) }
+                            .padding(12.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        Checkbox(
+                            checked = task.isCompleted,
+                            onCheckedChange = { viewModel.toggleTask(task) },
+                            colors = CheckboxDefaults.colors(
+                                checkedColor = MaterialTheme.colorScheme.primary
+                            ),
+                            modifier = Modifier.testTag("task_checkbox_${task.id}")
+                        )
+
+                        CategoryIcon(
+                            category = task.category,
+                            tint = subColor,
+                            modifier = Modifier.size(20.dp)
+                        )
+
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = task.title,
+                                style = MaterialTheme.typography.bodyMedium.copy(
+                                    fontWeight = if (task.isCompleted) FontWeight.Normal else FontWeight.SemiBold,
+                                    textDecoration = if (task.isCompleted) TextDecoration.LineThrough else TextDecoration.None
+                                ),
+                                color = if (task.isCompleted)
+                                    MaterialTheme.colorScheme.onSurfaceVariant
+                                else
+                                    MaterialTheme.colorScheme.onSurface,
+                                maxLines = 2,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(6.dp)
+                            ) {
+                                Text(
+                                    text = getSubjectDisplayName(task.subjectId),
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = subColor
+                                )
+                                Text(
+                                    text = "•",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                                Text(
+                                    text = "${task.plannedMinutes} min",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                                if (task.isWeakTopic) {
+                                    Box(
+                                        modifier = Modifier
+                                            .clip(RoundedCornerShape(4.dp))
+                                            .background(StudyAccentRose.copy(alpha = 0.15f))
+                                            .padding(horizontal = 4.dp, vertical = 2.dp)
+                                    ) {
+                                        Text(
+                                            text = "Weak Topic",
+                                            style = MaterialTheme.typography.labelSmall.copy(fontSize = 9.sp),
+                                            color = StudyAccentRose
+                                        )
+                                    }
+                                }
+                            }
+                        }
+
+                        // Difficulty Tag
+                        Box(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(6.dp))
+                                .background(MaterialTheme.colorScheme.surface)
+                                .padding(horizontal = 6.dp, vertical = 3.dp)
+                        ) {
+                            Text(
+                                text = task.difficulty.lowercase().replaceFirstChar { it.uppercase() },
+                                style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp),
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+                }
+            }
+        }
+
+        // 5. Stat Row: Test Books Remaining & Streak
+        item {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                StatCard(
+                    title = "Test Books",
+                    value = "${10 - remainingBooksCount}/10",
+                    subtitle = "$remainingBooksCount remaining to complete",
+                    icon = Icons.Filled.AutoStories,
+                    iconTint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.weight(1f)
+                )
+
+                StatCard(
+                    title = "Daily Streak",
+                    value = "${userSettings?.streakCount ?: 0} Days",
+                    subtitle = "Tap to advance streak",
+                    icon = Icons.Filled.LocalFireDepartment,
+                    iconTint = StudyAccentAmber,
+                    modifier = Modifier.weight(1f),
+                    onClick = { viewModel.incrementStreakManual() }
                 )
             }
         }
-    }
-}
 
-@Composable
-private fun StoryAvatarItem(
-    title: String,
-    subtitle: String,
-    imageUri: String,
-    hasStory: Boolean,
-    onClick: () -> Unit
-) {
-    Column(
-        horizontalAlignment = Alignment.CenterHorizontally,
-        modifier = Modifier.clickable { onClick() }
-    ) {
-        Box(
-            modifier = Modifier
-                .size(66.dp)
-                .clip(CircleShape)
-                .border(
-                    width = if (hasStory) 2.dp else 1.dp,
-                    brush = if (hasStory) Brush.sweepGradient(listOf(GalleryPrimary, Color(0xFFF59E0B), GalleryPrimary)) else Brush.linearGradient(listOf(Color.Gray, Color.DarkGray)),
-                    shape = CircleShape
+        // 6. 10-Subject Quick Progress Grid / Overview
+        item {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "10 Subjects Overview",
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.onSurface
                 )
-                .padding(3.dp)
-                .clip(CircleShape)
-        ) {
-            ArtImageView(
-                mediaUri = imageUri,
-                contentDescription = title,
-                modifier = Modifier.fillMaxSize()
-            )
+                Text(
+                    text = "Explore All >",
+                    style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.SemiBold),
+                    color = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.clickable { onNavigateToSubjects() }
+                )
+            }
         }
-        Spacer(modifier = Modifier.height(4.dp))
-        Text(
-            text = title,
-            style = MaterialTheme.typography.labelSmall,
-            fontSize = 10.sp,
-            fontWeight = FontWeight.SemiBold,
-            maxLines = 1
-        )
-        Text(
-            text = subtitle,
-            style = MaterialTheme.typography.labelSmall,
-            fontSize = 8.sp,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            maxLines = 1
-        )
+
+        items(subjects) { subject ->
+            val color = getSubjectColor(subject.id)
+            val completedHours = subject.completedMinutes / 60f
+            val percent = ((subject.completedMinutes.toDouble() / (subject.targetHours * 60)) * 100).toInt().coerceIn(0, 100)
+
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { onNavigateToSubjects() },
+                shape = RoundedCornerShape(14.dp),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(14.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(10.dp)
+                            .clip(CircleShape)
+                            .background(color)
+                    )
+
+                    Column(modifier = Modifier.weight(1f)) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Text(
+                                text = subject.name,
+                                style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
+                            Text(
+                                text = "${String.format("%.1f", completedHours)}/${subject.targetHours}h",
+                                style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.SemiBold),
+                                color = color
+                            )
+                        }
+
+                        Spacer(modifier = Modifier.height(6.dp))
+
+                        AnimatedProgressBar(
+                            progress = percent / 100f,
+                            color = color,
+                            height = 6.dp
+                        )
+                    }
+
+                    Text(
+                        text = "$percent%",
+                        style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+        }
     }
 }

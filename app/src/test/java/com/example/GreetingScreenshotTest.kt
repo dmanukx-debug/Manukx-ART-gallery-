@@ -5,9 +5,8 @@ import androidx.compose.material3.Surface
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onRoot
-import com.example.data.model.UserEntity
-import com.example.ui.components.GalleryTopBar
-import com.example.ui.theme.ManukxArtTheme
+import com.example.ui.components.StudyTopAppBar
+import com.example.ui.theme.StudyPlannerTheme
 import com.github.takahirom.roborazzi.RobolectricDeviceQualifiers
 import com.github.takahirom.roborazzi.captureRoboImage
 import org.junit.Rule
@@ -25,25 +24,17 @@ class GreetingScreenshotTest {
     @get:Rule val composeTestRule = createComposeRule()
 
     @Test
-    fun gallery_topbar_screenshot() {
-        val testUser = UserEntity(
-            userId = "user_master",
-            username = "elena_rostova",
-            displayName = "Elena Rostova",
-            bio = "Master Draftsman",
-            avatarUrl = ""
-        )
-
+    fun study_topbar_screenshot() {
         composeTestRule.setContent {
-            ManukxArtTheme(darkTheme = true) {
+            StudyPlannerTheme(darkTheme = true) {
                 Surface(modifier = Modifier.fillMaxSize()) {
-                    GalleryTopBar(
-                        currentUser = testUser,
+                    StudyTopAppBar(
+                        streakCount = 5,
                         isDarkTheme = true,
                         onToggleTheme = {},
-                        onOpenAuth = {},
-                        onOpenAdmin = {},
-                        onSearchClick = {}
+                        onOpenTimer = {},
+                        onOpenSettings = {},
+                        onStreakClick = {}
                     )
                 }
             }

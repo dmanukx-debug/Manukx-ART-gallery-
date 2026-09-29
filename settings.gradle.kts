@@ -22,6 +22,6 @@ dependencyResolutionManagement {
   }
 }
 
-rootProject.name = "Manukx Art Gallery"
+rootProject.name = "Study30"
 
 include(":app")

@@ -4,9 +4,10 @@ import android.content.Context
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import com.example.data.database.AppDatabase
-import com.example.data.model.ArtPostEntity
-import com.example.data.model.UserEntity
-import com.example.data.repository.GalleryRepository
+import com.example.data.model.SubjectEntity
+import com.example.data.model.TaskEntity
+import com.example.data.model.TestBookEntity
+import com.example.data.repository.StudyRepository
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import org.junit.After
@@ -22,7 +23,7 @@ import org.robolectric.annotation.Config
 class ExampleRobolectricTest {
 
     private lateinit var database: AppDatabase
-    private lateinit var repository: GalleryRepository
+    private lateinit var repository: StudyRepository
 
     @Before
     fun setup() {
@@ -30,7 +31,7 @@ class ExampleRobolectricTest {
         database = Room.inMemoryDatabaseBuilder(context, AppDatabase::class.java)
             .allowMainThreadQueries()
             .build()
-        repository = GalleryRepository(database.galleryDao())
+        repository = StudyRepository(database.studyDao())
     }
 
     @After
@@ -42,98 +43,84 @@ class ExampleRobolectricTest {
     fun testAppNameResource() {
         val context = ApplicationProvider.getApplicationContext<Context>()
         val appName = context.getString(R.string.app_name)
-        assertEquals("Manukx Art Gallery", appName)
+        assertEquals("Study30", appName)
     }
 
     @Test
-    fun testCreateAndLikeArtworkPost() = runBlocking {
-        // Insert active artist
-        val artist = UserEntity(
-            userId = "test_artist_1",
-            username = "elena",
-            displayName = "Elena Rostova",
-            bio = "Master Draftsman",
-            avatarUrl = "",
-            isCurrentUser = true
+    fun testInsertAndRetrieveSubject() = runBlocking {
+        val math = SubjectEntity(
+            id = "math",
+            name = "Mathematics",
+            category = "Heavy",
+            colorHex = 0xFF4F46E5,
+            iconName = "calculate",
+            targetHours = 8,
+            completedMinutes = 0,
+            priority = "High"
         )
-        database.galleryDao().insertUser(artist)
+        database.studyDao().insertSubjects(listOf(math))
 
-        val postId = repository.createPost(
-            title = "Solitude at Dawn",
-            description = "Architectural stone arch study bathed in golden morning light.",
-            mediaUri = "res:art_solitude_dawn",
-            mediaType = "IMAGE",
-            category = "Acrylic Art",
-            medium = "Oil & Tempera on Linen",
-            technique = "Chiaroscuro Glazing",
-            dimensions = "24 x 36 in",
-            materialsUsed = "Raw Linen, Earth Pigments",
-            isReel = false,
-            videoDurationSec = 0,
-            isForSale = true,
-            price = 450.0,
-            hasCertificateOfAuthenticity = true
-        )
-
-        assertTrue(postId > 0)
-
-        val posts = repository.allPosts.first()
-        assertEquals(1, posts.size)
-        assertEquals("Solitude at Dawn", posts[0].title)
-        assertEquals(450.0, posts[0].price, 0.01)
-
-        // Like post
-        repository.toggleLike(postId)
-        val isLiked = repository.isPostLiked(postId, artist.userId).first()
-        assertTrue(isLiked)
-
-        // Save post
-        repository.toggleSave(postId)
-        val isSaved = repository.isPostSaved(postId, artist.userId).first()
-        assertTrue(isSaved)
+        val subjects = repository.allSubjects.first()
+        assertEquals(1, subjects.size)
+        assertEquals("Mathematics", subjects[0].name)
+        assertEquals(8, subjects[0].targetHours)
+        assertEquals(0, subjects[0].completedMinutes)
     }
 
     @Test
-    fun testPlaceMarketplaceOrder() = runBlocking {
-        val seller = UserEntity(
-            userId = "seller_1",
-            username = "marcus",
-            displayName = "Marcus Aurel",
-            bio = "Plein Air Painter",
-            avatarUrl = ""
+    fun testToggleTaskCompletion() = runBlocking {
+        val task = TaskEntity(
+            dayNumber = 1,
+            subjectId = "math",
+            title = "Solve algebra questions",
+            category = "STUDY",
+            plannedMinutes = 25,
+            completedMinutes = 0,
+            isCompleted = false,
+            priority = "HIGH",
+            difficulty = "MEDIUM",
+            isWeakTopic = true
         )
-        val buyer = UserEntity(
-            userId = "buyer_1",
-            username = "collector_jane",
-            displayName = "Jane Doe",
-            bio = "Art Collector",
-            avatarUrl = "",
-            isCurrentUser = true
+        val taskId = repository.insertTask(task)
+        val inserted = repository.getTasksForDay(1).first().first { it.id == taskId }
+
+        assertFalse(inserted.isCompleted)
+        assertEquals(0, inserted.completedMinutes)
+
+        repository.toggleTaskCompleted(inserted)
+        val updated = repository.getTasksForDay(1).first().first { it.id == taskId }
+        assertTrue(updated.isCompleted)
+        assertEquals(25, updated.completedMinutes)
+    }
+
+    @Test
+    fun testTestBookProgressUpdate() = runBlocking {
+        val book = TestBookEntity(
+            bookNumber = 1,
+            title = "Mathematics Master Test Book",
+            subjectId = "math",
+            totalQuestions = 100,
+            completedQuestions = 0,
+            scorePercentage = 0,
+            mistakesCount = 0,
+            revisionStatus = "NOT_STARTED"
         )
-        database.galleryDao().insertUser(seller)
-        database.galleryDao().insertUser(buyer)
+        database.studyDao().insertTestBooks(listOf(book))
 
-        val orderId = repository.placeOrder(
-            itemType = "ARTWORK",
-            itemId = 101L,
-            itemTitle = "Misty Mountain Ridge",
-            itemImage = "res:art_watercolor_mist",
-            price = 320.0,
-            sellerId = seller.userId,
-            sellerName = seller.displayName,
-            shippingAddress = "100 Fine Arts Boulevard, Gallery Suite 4"
+        val books = repository.allTestBooks.first()
+        assertEquals(1, books.size)
+        assertEquals(0, books[0].completedQuestions)
+
+        val updatedBook = books[0].copy(
+            completedQuestions = 25,
+            scorePercentage = 80,
+            revisionStatus = "IN_PROGRESS"
         )
+        repository.updateTestBook(updatedBook)
 
-        assertTrue(orderId > 0)
-
-        val orders = repository.allOrders.first()
-        assertEquals(1, orders.size)
-        assertEquals("Misty Mountain Ridge", orders[0].itemTitle)
-        assertEquals("CONFIRMED", orders[0].status)
-
-        // Verify seller received notification
-        val sellerNotifs = repository.getNotificationsForUser(seller.userId).first()
-        assertEquals(1, sellerNotifs.size)
-        assertTrue(sellerNotifs[0].message.contains("New Studio Acquisition"))
+        val afterUpdate = repository.allTestBooks.first()
+        assertEquals(25, afterUpdate[0].completedQuestions)
+        assertEquals(80, afterUpdate[0].scorePercentage)
+        assertEquals("IN_PROGRESS", afterUpdate[0].revisionStatus)
     }
 }
